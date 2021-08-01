@@ -1,0 +1,7 @@
+.idea
+node_modules
+dist
+*.sh
+pm2
+.run
+.nyc_output
