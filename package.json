@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/MongoStoreAdapter",
+  "typings": "./types/MongoStoreAdapter.d.ts",
   "scripts": {
     "coverage": "nyc npm run test",
     "test": "mocha -r esm --exit",
