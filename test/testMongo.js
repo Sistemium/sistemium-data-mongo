@@ -2,16 +2,20 @@ import { assert, expect } from 'sistemium-data/test/chai';
 import { mongoose } from 'sistemium-mongo/lib/mongoose';
 import Model, { OFFSET_HEADER, SORT_HEADER, FULL_RESPONSE_OPTION } from 'sistemium-data/src/Model';
 import MongoStoreAdapter from '../src/MongoStoreAdapter';
-import { MockMongoose } from 'mock-mongoose';
+// import { MockMongoose } from 'mock-mongoose';
 import personData from 'sistemium-data/test/personData';
 import CommonFieldsPlugin from 'sistemium-data/src/plugins/CommonFieldsPlugin';
 import lo from 'lodash';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const people = personData();
-const mockMongoose = new MockMongoose(mongoose);
+// const mockMongoose = new MockMongoose(mongoose);
 const storeAdapter = new MongoStoreAdapter({ mongoose });
 
 class MongoModel extends Model {
+  constructor(config) {
+    super(config);
+  }
 }
 
 if (!MongoModel.useStoreAdapter) {
@@ -31,15 +35,22 @@ const Person = new MongoModel({
   },
 });
 
+let mongoServer;
+
 describe('Mongo Model', function () {
 
   before(async function () {
-    await mockMongoose.prepareStorage();
-    await storeAdapter.connect('mongo.sistemium.net/TestingDB');
+    mongoServer = await MongoMemoryServer.create();
+    const uri = `${mongoServer.getUri().replace('mongodb://', '')}verifyMASTER`;
+    await storeAdapter.connect(uri);
+    console.log(mongoServer.getUri());
   });
 
   beforeEach(async function () {
-    await mockMongoose.helper.reset();
+    const collections = await mongoose.connection.db.collections();
+    for (let collection of collections) {
+      await collection.deleteMany({});
+    }
   });
 
   it('should respond 204', async function () {
@@ -65,12 +76,20 @@ describe('Mongo Model', function () {
     // console.log('found', found);
     expect(found, 'found object is not equal to created').to.eql(created);
 
-    const foundArray = await Person.find({ id: props.id });
+    const foundArray = await Person.find([{ id: props.id }]);
     expect(foundArray).to.eql([created]);
 
-    const updated = await Person.createOne({ ...props, fatherId: null });
+    const updated = await Person.updateOne({ ...props, fatherId: null });
     expect(updated.fatherId).equals(null);
 
+  });
+
+  it('should not update non existing data', async function () {
+    try {
+      await Person.updateOne({ id: 'null', fatherId: null });
+    } catch (e) {
+      expect(e.message).equals('Request failed with status code 404');
+    }
   });
 
   it('should merge and delete data', async function () {
@@ -83,6 +102,25 @@ describe('Mongo Model', function () {
     await Person.deleteOne({ id: ids[1] });
     const deleted = await Person.find({ id: { $in: lo.take(ids, 2) } });
     expect(deleted).to.eql([]);
+
+  });
+
+  it('should merge and aggregate data', async function () {
+
+    const ids = await Person.merge(people);
+    // console.log('ids', ids);
+
+    try {
+      const pipeline = [
+        { $match: { id: { $in: lo.take(ids, 2) } } },
+      ];
+      const aggregated = await Person.aggregate(pipeline);
+      const found = await Person.find({});
+      expect(aggregated).to.eql(found);
+    } catch (e) {
+      console.error(e);
+      expect(e).to.be.empty;
+    }
 
   });
 

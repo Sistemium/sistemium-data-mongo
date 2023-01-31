@@ -76,6 +76,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
     let statusText = 'Not implemented yet';
     let data = null;
     const responseHeaders = {};
+    const offsetRequested = headers[OFFSET_HEADER];
 
     try {
       switch (op) {
@@ -89,12 +90,37 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
         case m.OP_FIND_MANY:
           debug(method, params);
-          data = await this.find(model, params, headers);
-          const offsetRequested = headers[OFFSET_HEADER];
+          const filter = Array.isArray(params) ? arrayToFilter(params) : params;
+          data = await this.find(model, filter, headers);
           if (offsetRequested) {
             responseHeaders[OFFSET_HEADER] = this.offsetFromArray(data) || offsetRequested;
           }
           status = data.length ? 200 : 204;
+          break;
+
+        case m.OP_AGGREGATE:
+          debug(method, params);
+          console.assert(Array.isArray(params), 'Aggregate requires array pipeline');
+          data = await this.aggregate(model, params, headers);
+          if (offsetRequested) {
+            responseHeaders[OFFSET_HEADER] = this.offsetFromArray(data) || offsetRequested;
+          }
+          status = data.length ? 200 : 204;
+          break;
+
+        case m.OP_UPDATE_ONE:
+          debug(method, resourceId, requestData);
+          assert(resourceId, 'Update requires resourceId');
+          assert(isObject(requestData), 'Update requires object data');
+          data = await model.findOneAndUpdate(
+            { id: resourceId },
+            {
+              $set: requestData,
+              $currentDate: { ts: { $type: 'timestamp' } },
+            },
+            { new: true },
+          );
+          status = data ? 200 : 404;
           break;
 
         case m.OP_CREATE:
@@ -238,7 +264,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
     if (offset) {
       filter.ts = { $gt: offsetToTimestamp(offset) };
     }
-    debug('find', options);
+    debug('find', filter, options);
     const query = mongooseModel.find(filter);
     if (offset) {
       query.sort({ ts: 1 });
@@ -247,6 +273,19 @@ export default class MongoStoreAdapter extends StoreAdapter {
       query.sort(this.sortFromHeader(sort));
     }
     return query;
+  }
+
+  async aggregate(mongooseModel, pipeline = [], options = {}) {
+    const { [SORT_HEADER]: sort, [OFFSET_HEADER]: offset } = options;
+    if (offset) {
+      pipeline.splice(0, 0, { ts: { $gt: offsetToTimestamp(offset) } });
+      pipeline.push({ $sort: { ts: 1 } });
+    }
+    if (sort) {
+      pipeline.push({ $sort: this.sortFromHeader(sort) });
+    }
+    debug('aggregate', pipeline, options);
+    return mongooseModel.aggregate(pipeline);
   }
 
   sortFromHeader(sortHeader = '') {
@@ -280,3 +319,10 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
 }
 
+function arrayToFilter(array) {
+  const res = {};
+  array.forEach(filter => {
+    Object.assign(res, filter);
+  });
+  return res;
+}
