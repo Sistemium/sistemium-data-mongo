@@ -29,6 +29,7 @@ export default class MongoStoreAdapter {
         upsert: boolean;
     };
     find(mongooseModel: any, filter?: {}, options?: {}): Promise<any>;
+    aggregate(mongooseModel: any, pipeline?: any[], options?: {}): Promise<any>;
     sortFromHeader(sortHeader?: string): {};
     offsetFromArray(data: any): any;
     toObject(record: any): any;
