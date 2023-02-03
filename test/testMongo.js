@@ -32,6 +32,7 @@ const Person = new MongoModel({
     id: String,
     name: String,
     fatherId: String,
+    children: [],
   },
 });
 
@@ -89,6 +90,23 @@ describe('Mongo Model', function () {
       await Person.updateOne({ id: 'null', fatherId: null });
     } catch (e) {
       expect(e.message).equals('Request failed with status code 404');
+    }
+  });
+
+  it('should update with arrayFilters', async function () {
+    try {
+      const id = 'arrayFilters';
+      const children = [
+        { name: 'child1', age: 10 },
+        { name: 'child2', age: 12 },
+      ];
+      await Person.create({ id, children });
+      const arrayFilters = [{ 'element.name': 'child2' }];
+      const props = { id, 'children.$[element].age': 13 };
+      const person = await Person.updateOne(props, { headers: { arrayFilters } });
+      expect(person.children[1].age).equals(13);
+    } catch (e) {
+      expect(e.message).to.eql(null);
     }
   });
 

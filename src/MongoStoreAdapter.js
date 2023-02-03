@@ -16,6 +16,7 @@ import { OFFSET_HEADER, SORT_HEADER } from 'sistemium-data/src/Model';
 import each from 'lodash/each';
 
 export const mongoose = defaultMongoose;
+export const ARRAY_FILTERS_OPTION = 'arrayFilters';
 
 const { debug, error } = log('MongoAdapter');
 const INTERNAL_FIELDS_RE = /^_/;
@@ -112,13 +113,17 @@ export default class MongoStoreAdapter extends StoreAdapter {
           debug(method, resourceId, requestData);
           assert(resourceId, 'Update requires resourceId');
           assert(isObject(requestData), 'Update requires object data');
+          const updateOptions = { new: true };
+          if (headers[ARRAY_FILTERS_OPTION]) {
+            updateOptions.arrayFilters = headers[ARRAY_FILTERS_OPTION];
+          }
           data = await model.findOneAndUpdate(
             { id: resourceId },
             {
               $set: requestData,
               $currentDate: { ts: { $type: 'timestamp' } },
             },
-            { new: true },
+            updateOptions,
           );
           status = data ? 200 : 404;
           break;
