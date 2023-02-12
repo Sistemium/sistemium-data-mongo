@@ -17,7 +17,7 @@
     "mongoose": "^6.9.0",
     "sistemium-data": "^1.8.0",
     "sistemium-debug": "^1.0.3",
-    "sistemium-mongo": "^1.14.1",
+    "sistemium-mongo": "^1.15.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
