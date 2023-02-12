@@ -1,4 +1,5 @@
 export const mongoose: any;
+export const ARRAY_FILTERS_OPTION: "arrayFilters";
 export default class MongoStoreAdapter {
     constructor(options?: {});
     mongoose: any;
