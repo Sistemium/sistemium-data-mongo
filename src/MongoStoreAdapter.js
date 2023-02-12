@@ -22,7 +22,7 @@ const { debug, error } = log('MongoAdapter');
 const INTERNAL_FIELDS_RE = /^_/;
 const omitInternal = fpOmitBy((val, key) => INTERNAL_FIELDS_RE.test(key));
 const pickUndefined = obj => mapValues(pickBy(obj, val => val === undefined), () => 1);
-
+const PAGE_SIZE_HEADER = 'x-page-size';
 
 export default class MongoStoreAdapter extends StoreAdapter {
 
@@ -265,7 +265,11 @@ export default class MongoStoreAdapter extends StoreAdapter {
   }
 
   async find(mongooseModel, filter = {}, options = {}) {
-    const { [SORT_HEADER]: sort, [OFFSET_HEADER]: offset } = options;
+    const {
+      [SORT_HEADER]: sort,
+      [OFFSET_HEADER]: offset,
+      [PAGE_SIZE_HEADER]: pageSize,
+    } = options;
     if (offset) {
       filter.ts = { $gt: offsetToTimestamp(offset) };
     }
@@ -276,6 +280,9 @@ export default class MongoStoreAdapter extends StoreAdapter {
     }
     if (sort) {
       query.sort(this.sortFromHeader(sort));
+    }
+    if (pageSize) {
+      query.limit(parseInt(pageSize, 10));
     }
     return query;
   }
