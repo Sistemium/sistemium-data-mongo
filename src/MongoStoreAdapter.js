@@ -270,7 +270,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
       filter.ts = { $gt: offsetToTimestamp(offset) };
     }
     debug('find', filter, options);
-    const query = mongooseModel.find(filter);
+    const query = mongooseModel.find(filter, null, { strict: false, lean: true });
     if (offset) {
       query.sort({ ts: 1 });
     }
