@@ -32,11 +32,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
   }
 
   connect(url = process.env.MONGO_URL) {
-    return (this.mongoose || defaultMongoose).connect(`mongodb://${url}`, {
-      useNewUrlParser: true,
-      useCreateIndex: true,
-      useUnifiedTopology: true,
-    });
+    return (this.mongoose || defaultMongoose).connect(`mongodb://${url}`);
   }
 
   disconnect() {
@@ -193,8 +189,8 @@ export default class MongoStoreAdapter extends StoreAdapter {
       }
       const res = o.toObject ? o.toObject() : o;
       const { ts } = res;
-      if (ts && ts.high_) {
-        res.ts = new Date(ts.high_ * 1000);
+      if (ts && ts.high) {
+        res.ts = new Date(ts.high * 1000);
         res[OFFSET_HEADER] = timestampToOffset(ts);
       }
       return omitInternal(res);
