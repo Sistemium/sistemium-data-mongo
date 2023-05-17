@@ -7,7 +7,7 @@ import { mongoose as defaultMongoose, Schema, model as mongooseModel } from 'sis
 import * as m from 'sistemium-data/src/Model';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import fpOmitBy from 'lodash/fp/omitBy';
+import omitBy from 'lodash/omitBy';
 import mapValues from 'lodash/mapValues';
 import pickBy from 'lodash/pickBy';
 import isString from 'lodash/isString';
@@ -20,15 +20,20 @@ export const ARRAY_FILTERS_OPTION = 'arrayFilters';
 
 const { debug, error } = log('MongoAdapter');
 const INTERNAL_FIELDS_RE = /^_/;
-const omitInternal = fpOmitBy((val, key) => INTERNAL_FIELDS_RE.test(key));
 const pickUndefined = obj => mapValues(pickBy(obj, val => val === undefined), () => 1);
 const PAGE_SIZE_HEADER = 'x-page-size';
 
 export default class MongoStoreAdapter extends StoreAdapter {
 
   constructor(options = {}) {
-    super();
+    super(options);
     this.mongoose = options.mongoose;
+  }
+
+  omitInternal(obj) {
+    return omitBy(obj, (val, key) => {
+      return key !== this.idProperty && INTERNAL_FIELDS_RE.test(key);
+    });
   }
 
   connect(url = process.env.MONGO_URL) {
@@ -128,7 +133,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
           debug(method, requestData);
           assert(isObject(requestData), 'Create requires object data');
           data = await model.create({
-            ...omitInternal(requestData),
+            ...this.omitInternal(requestData),
             cts: new Date(),
           });
           data = await model.findOneAndUpdate(
@@ -193,7 +198,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
         res.ts = new Date(ts.high * 1000);
         res[OFFSET_HEADER] = timestampToOffset(ts);
       }
-      return omitInternal(res);
+      return this.omitInternal(res);
     });
     return wasArray ? response : response [0];
   }
@@ -234,7 +239,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
     const mergeBy = Object.keys(filter);
     const toOmit = ['ts', ...onInsertFields, this.idProperty, ...mergeBy];
-    const $set = omitInternal(omit(props, toOmit));
+    const $set = this.omitInternal(omit(props, toOmit));
     const $unset = pickUndefined($set);
 
     const update = {
