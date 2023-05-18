@@ -2,7 +2,7 @@ import { assert, expect } from 'sistemium-data/test/chai';
 import { mongoose } from 'sistemium-mongo/lib/mongoose';
 import Model from 'sistemium-data/src/Model';
 import MongoStoreAdapter from '../src/MongoStoreAdapter';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { clearMockMongo, initMockMongo } from './mockMongo';
 
 const storeAdapter = new MongoStoreAdapter({ mongoose, idProperty: '_id' });
 
@@ -24,23 +24,15 @@ const Person = new MongoModelId({
   },
 });
 
-let mongoServer;
 
 describe('Mongo idProperty', function () {
 
-  before(async function () {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = `${mongoServer.getUri().replace('mongodb://', '')}verifyMASTER`;
+  before(async function() {
+    const uri = await initMockMongo();
     await storeAdapter.connect(uri);
-    console.log(mongoServer.getUri());
   });
 
-  beforeEach(async function () {
-    const collections = await mongoose.connection.db.collections();
-    for (let collection of collections) {
-      await collection.deleteMany({});
-    }
-  });
+  beforeEach(clearMockMongo);
 
   it('should merge', async function () {
 

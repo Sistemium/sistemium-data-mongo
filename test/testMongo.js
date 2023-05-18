@@ -2,11 +2,10 @@ import { assert, expect } from 'sistemium-data/test/chai';
 import { mongoose } from 'sistemium-mongo/lib/mongoose';
 import Model, { OFFSET_HEADER, SORT_HEADER, FULL_RESPONSE_OPTION } from 'sistemium-data/src/Model';
 import MongoStoreAdapter from '../src/MongoStoreAdapter';
-// import { MockMongoose } from 'mock-mongoose';
 import personData from 'sistemium-data/test/personData';
 import CommonFieldsPlugin from 'sistemium-data/src/plugins/CommonFieldsPlugin';
 import lo from 'lodash';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { clearMockMongo, initMockMongo } from './mockMongo';
 
 const people = personData();
 // const mockMongoose = new MockMongoose(mongoose);
@@ -36,23 +35,15 @@ const Person = new MongoModel({
   },
 });
 
-let mongoServer;
 
 describe('Mongo Model', function () {
 
-  before(async function () {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = `${mongoServer.getUri().replace('mongodb://', '')}verifyMASTER`;
+  before(async function() {
+    const uri = await initMockMongo();
     await storeAdapter.connect(uri);
-    console.log(mongoServer.getUri());
   });
 
-  beforeEach(async function () {
-    const collections = await mongoose.connection.db.collections();
-    for (let collection of collections) {
-      await collection.deleteMany({});
-    }
-  });
+  beforeEach(clearMockMongo);
 
   it('should respond 204', async function () {
 
