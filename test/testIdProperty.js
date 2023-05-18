@@ -1,10 +1,12 @@
 import { assert, expect } from 'sistemium-data/test/chai';
 import { mongoose } from 'sistemium-mongo/lib/mongoose';
 import Model from 'sistemium-data/src/Model';
-import MongoStoreAdapter from '../src/MongoStoreAdapter';
 import { clearMockMongo, initMockMongo } from './mockMongo';
+import { OFFSET_HEADER } from 'sistemium-data/src/Model';
+import DateOffsetAdapter from '../src/DateOffsetAdapter';
 
-const storeAdapter = new MongoStoreAdapter({ mongoose, idProperty: '_id' });
+
+const storeAdapter = new DateOffsetAdapter({ mongoose, idProperty: '_id' });
 
 class MongoModelId extends Model {
   constructor(config) {
@@ -27,7 +29,7 @@ const Person = new MongoModelId({
 
 describe('Mongo idProperty', function () {
 
-  before(async function() {
+  before(async function () {
     const uri = await initMockMongo();
     await storeAdapter.connect(uri);
   });
@@ -48,6 +50,22 @@ describe('Mongo idProperty', function () {
     const [found] = await Person.find({})
 
     expect(found).to.deep.include(props);
+
+  });
+
+  it('should handle string ts', async function () {
+
+    const props = {
+      _id: 'test_1',
+      name: 'Test'
+    };
+
+    const created = await Person.createOne(props);
+    expect(created.ts).to.be.not.null;
+
+    const data = await Person.fetchAll({});
+
+    expect(data[OFFSET_HEADER]).to.be.not.empty;
 
   });
 

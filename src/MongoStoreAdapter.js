@@ -122,7 +122,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
             { id: resourceId },
             {
               $set: requestData,
-              $currentDate: { ts: { $type: 'timestamp' } },
+              $currentDate: this.$currentDate(),
             },
             updateOptions,
           );
@@ -138,7 +138,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
           });
           data = await model.findOneAndUpdate(
             { _id: data._id },
-            { $currentDate: { ts: { $type: 'timestamp' } } },
+            { $currentDate: this.$currentDate() },
             { new: true }
           );
           status = 201;
@@ -194,9 +194,11 @@ export default class MongoStoreAdapter extends StoreAdapter {
       }
       const res = o.toObject ? o.toObject() : o;
       const { ts } = res;
-      if (ts && ts.high) {
-        res.ts = new Date(ts.high * 1000);
-        res[OFFSET_HEADER] = timestampToOffset(ts);
+      if (ts) {
+        res[OFFSET_HEADER] = this.offsetFromRecord(res);
+        if (ts.high) {
+          res.ts = new Date(ts.high * 1000);
+        }
       }
       return this.omitInternal(res);
     });
@@ -234,7 +236,6 @@ export default class MongoStoreAdapter extends StoreAdapter {
       .filter(key => tree[key].setOnInsert);
   }
 
-
   $updateOne(props, id, filter, onInsertFields, upsert = true) {
 
     const mergeBy = Object.keys(filter);
@@ -246,7 +247,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
       $set: omit($set, Object.keys($unset)),
       $unset,
       $setOnInsert: { ...pick(props, onInsertFields), [this.idProperty]: id },
-      $currentDate: { ts: { $type: 'timestamp' } }
+      $currentDate: this.$currentDate(),
     };
 
     if (!Object.keys($unset).length) {
@@ -265,19 +266,20 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
   }
 
-  async find(mongooseModel, filter = {}, options = {}) {
+  async find(mongooseModel, filterArg = {}, options = {}) {
     const {
       [SORT_HEADER]: sort,
       [OFFSET_HEADER]: offset,
       [PAGE_SIZE_HEADER]: pageSize,
     } = options;
+    const filter = { ...filterArg };
     if (offset) {
-      filter.ts = { $gt: offsetToTimestamp(offset) };
+      Object.assign(filter, this.offsetToFilter(offset));
     }
     debug('find', filter, options);
     const query = mongooseModel.find(filter, null, { strict: false, lean: true });
     if (offset) {
-      query.sort({ ts: 1 });
+      query.sort(this.offsetSort());
     }
     if (sort) {
       query.sort(this.sortFromHeader(sort));
@@ -291,8 +293,8 @@ export default class MongoStoreAdapter extends StoreAdapter {
   async aggregate(mongooseModel, pipeline = [], options = {}) {
     const { [SORT_HEADER]: sort, [OFFSET_HEADER]: offset } = options;
     if (offset) {
-      pipeline.splice(0, 0, { ts: { $gt: offsetToTimestamp(offset) } });
-      pipeline.push({ $sort: { ts: 1 } });
+      pipeline.splice(0, 0, { $match: this.offsetToFilter(offset) });
+      pipeline.push({ $sort: this.offsetSort() });
     }
     if (sort) {
       pipeline.push({ $sort: this.sortFromHeader(sort) });
@@ -319,11 +321,25 @@ export default class MongoStoreAdapter extends StoreAdapter {
     if (!data.length) {
       return null;
     }
-    const { ts } = this.toObject(data[data.length - 1]);
-    if (!ts) {
-      return null;
-    }
-    return timestampToOffset(ts);
+    const last = data[data.length - 1];
+    return this.offsetFromRecord(last)
+  }
+
+  offsetFromRecord(obj) {
+    const { ts } = obj;
+    return (ts && ts.high) ? timestampToOffset(ts) : undefined;
+  }
+
+  offsetToFilter(offset) {
+    return { ts: { $gt: offsetToTimestamp(offset) } };
+  }
+
+  offsetSort() {
+    return { ts: 1 };
+  }
+
+  $currentDate() {
+    return { ts: { $type: 'timestamp' } };
   }
 
   toObject(record) {
