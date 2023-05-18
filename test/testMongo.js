@@ -7,18 +7,15 @@ import CommonFieldsPlugin from 'sistemium-data/src/plugins/CommonFieldsPlugin';
 import lo from 'lodash';
 import { clearMockMongo, initMockMongo } from './mockMongo';
 
-const people = personData();
-// const mockMongoose = new MockMongoose(mongoose);
+const people = personData()
+  .map(item => lo.omit(item, OFFSET_HEADER));
+
 const storeAdapter = new MongoStoreAdapter({ mongoose });
 
 class MongoModel extends Model {
   constructor(config) {
     super(config);
   }
-}
-
-if (!MongoModel.useStoreAdapter) {
-  Object.assign(MongoModel, Model);
 }
 
 MongoModel
@@ -59,7 +56,6 @@ describe('Mongo Model', function () {
     const props = people[0];
 
     const created = await Person.createOne(props);
-    // console.log('created', created);
     expect(created).to.deep.include(props);
 
     await Person.createOne(people[1]);

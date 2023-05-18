@@ -15,7 +15,7 @@
   "dependencies": {
     "lodash": "^4.17.21",
     "mongoose": "^6.9.1",
-    "sistemium-data": "^1.8.0",
+    "sistemium-data": "^1.10.2",
     "sistemium-debug": "^1.0.3",
     "sistemium-mongo": "^1.15.1",
     "uuid": "^8.3.2"
