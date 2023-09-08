@@ -35,7 +35,7 @@ const Person = new MongoModel({
 
 describe('Mongo Model', function () {
 
-  before(async function() {
+  before(async function () {
     const uri = await initMockMongo();
     await storeAdapter.connect(uri);
   });
@@ -92,6 +92,29 @@ describe('Mongo Model', function () {
       const props = { id, 'children.$[element].age': 13 };
       const person = await Person.updateOne(props, { headers: { arrayFilters } });
       expect(person.children[1].age).equals(13);
+    } catch (e) {
+      expect(e.message).to.eql(null);
+    }
+  });
+
+  it('should push into arrays', async function () {
+    try {
+      const id = 'arrayPush';
+      const children = [
+        { name: 'child1', age: 10 },
+        { name: 'child2', age: 12 },
+      ];
+      await Person.create({ id, children });
+      const $not = { $elemMatch: { name: 'child3' } };
+      const arrayPush = { children: { name: 'child3', age: 13 } };
+      const filter = { id, children: { $not } };
+      const person = await Person.updateOne(filter, { headers: { arrayPush } });
+      expect(person.children[2]).include(arrayPush.children);
+      const empty = await Person.updateOne(filter, { headers: { arrayPush } })
+        .catch(e => {
+          expect(e.message).equals('Request failed with status code 404');
+        });
+      expect(empty).to.be.undefined;
     } catch (e) {
       expect(e.message).to.eql(null);
     }

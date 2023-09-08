@@ -17,6 +17,7 @@ import each from 'lodash/each';
 
 export const mongoose = defaultMongoose;
 export const ARRAY_FILTERS_OPTION = 'arrayFilters';
+export const ARRAY_PUSH_OPTION = 'arrayPush';
 
 const { debug, error } = log('MongoAdapter');
 const INTERNAL_FIELDS_RE = /^_/;
@@ -115,15 +116,22 @@ export default class MongoStoreAdapter extends StoreAdapter {
           assert(resourceId, 'Update requires resourceId');
           assert(isObject(requestData), 'Update requires object data');
           const updateOptions = { new: true };
+          const updateFilter = { id: resourceId };
+          const updateOperators = {
+            $currentDate: this.$currentDate(),
+          };
           if (headers[ARRAY_FILTERS_OPTION]) {
             updateOptions.arrayFilters = headers[ARRAY_FILTERS_OPTION];
           }
+          if (headers[ARRAY_PUSH_OPTION]) {
+            updateOperators.$push = headers[ARRAY_PUSH_OPTION];
+            Object.assign(updateFilter, requestData);
+          } else {
+            updateOperators.$set = requestData;
+          }
           data = await model.findOneAndUpdate(
-            { id: resourceId },
-            {
-              $set: requestData,
-              $currentDate: this.$currentDate(),
-            },
+            updateFilter,
+            updateOperators,
             updateOptions,
           );
           status = data ? 200 : 404;
