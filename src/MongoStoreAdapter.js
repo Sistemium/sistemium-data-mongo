@@ -18,6 +18,7 @@ import each from 'lodash/each';
 export const mongoose = defaultMongoose;
 export const ARRAY_FILTERS_OPTION = 'arrayFilters';
 export const ARRAY_PUSH_OPTION = 'arrayPush';
+export const MONGO_SESSION_OPTION = 'mongoSession';
 
 const { debug, error } = log('MongoAdapter');
 const INTERNAL_FIELDS_RE = /^_/;
@@ -80,6 +81,11 @@ export default class MongoStoreAdapter extends StoreAdapter {
     let data = null;
     const responseHeaders = {};
     const offsetRequested = headers[OFFSET_HEADER];
+    const mongoOptions = { lean: true };
+
+    if (headers[MONGO_SESSION_OPTION]) {
+      mongoOptions.session = headers[MONGO_SESSION_OPTION];
+    }
 
     try {
       switch (op) {
@@ -87,14 +93,14 @@ export default class MongoStoreAdapter extends StoreAdapter {
         case m.OP_FIND_ONE:
           debug(method, resourceId);
           assert(resourceId, 'Resource id is required for findOne');
-          data = await model.findOne({ [idProperty]: resourceId });
+          data = await model.findOne({ [idProperty]: resourceId }, null, mongoOptions);
           status = data ? 200 : 404;
           break;
 
         case m.OP_FIND_MANY:
           debug(method, params);
           const filter = Array.isArray(params) ? arrayToFilter(params) : params;
-          data = await this.find(model, filter, headers);
+          data = await this.find(model, filter, headers, mongoOptions);
           if (offsetRequested) {
             responseHeaders[OFFSET_HEADER] = this.offsetFromArray(data) || offsetRequested;
           }
@@ -104,7 +110,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
         case m.OP_AGGREGATE:
           debug(method, params);
           console.assert(Array.isArray(params), 'Aggregate requires array pipeline');
-          data = await this.aggregate(model, params, headers);
+          data = await this.aggregate(model, params, headers, mongoOptions);
           if (offsetRequested) {
             responseHeaders[OFFSET_HEADER] = this.offsetFromArray(data) || offsetRequested;
           }
@@ -115,7 +121,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
           debug(method, resourceId, requestData);
           assert(resourceId, 'Update requires resourceId');
           assert(isObject(requestData), 'Update requires object data');
-          const updateOptions = { new: true };
+          const updateOptions = { new: true, ...mongoOptions };
           const updateFilter = { id: resourceId };
           const updateOperators = {
             $currentDate: this.$currentDate(),
@@ -140,14 +146,14 @@ export default class MongoStoreAdapter extends StoreAdapter {
         case m.OP_CREATE:
           debug(method, requestData);
           assert(isObject(requestData), 'Create requires object data');
-          data = await model.create({
+          [data] = await model.create([{
             ...this.omitInternal(requestData),
             cts: new Date(),
-          });
+          }], mongoOptions);
           data = await model.findOneAndUpdate(
             { _id: data._id },
             { $currentDate: this.$currentDate() },
-            { new: true }
+            { new: true, ...mongoOptions }
           );
           status = 201;
           break;
@@ -155,14 +161,14 @@ export default class MongoStoreAdapter extends StoreAdapter {
         case m.OP_MERGE:
           debug(method, requestData ? requestData.length : null);
           assert(Array.isArray(requestData), 'Merge requires array data');
-          data = await this.mergeFn(model, requestData);
+          data = await this.mergeFn(model, requestData, [this.idProperty], mongoOptions);
           status = 201;
           break;
 
         case m.OP_DELETE_ONE:
           debug(method, resourceId);
           assert(resourceId, 'Resource id is required for deleteOne');
-          await model.deleteOne({ [idProperty]: resourceId });
+          await model.deleteOne({ [idProperty]: resourceId }, mongoOptions);
           status = 204;
           break;
 
@@ -174,6 +180,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
     } catch (e) {
       status = 503;
+      console.error(e)
       statusText = e.message;
       error(e);
     }
@@ -196,11 +203,11 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
   transformResponse(data) {
     const wasArray = Array.isArray(data);
-    const response = (wasArray ? data : [data]).map(o => {
-      if (!o || isString(o)) {
-        return o;
+    const response = (wasArray ? data : [data]).map(res => {
+      if (!res || isString(res)) {
+        return res;
       }
-      const res = o.toObject ? o.toObject() : o;
+      // const res = o.toObject ? o.toObject() : o;
       const { ts } = res;
       if (ts) {
         res[OFFSET_HEADER] = this.offsetFromRecord(res);
@@ -213,7 +220,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
     return wasArray ? response : response [0];
   }
 
-  async mergeFn(mongooseModel, data, mergeBy = [this.idProperty]) {
+  async mergeFn(mongooseModel, data, mergeBy = [this.idProperty], mongoOptions = {}) {
 
     const ids = [];
     const onInsert = this.$setOnInsertFields(mongooseModel);
@@ -231,7 +238,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
     });
 
     if (ops.length) {
-      await mongooseModel.bulkWrite(ops, { ordered: false });
+      await mongooseModel.bulkWrite(ops, { ordered: false, ...mongoOptions });
     }
 
     return ids;
@@ -274,7 +281,28 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
   }
 
-  async find(mongooseModel, filterArg = {}, options = {}) {
+  startTransaction(session) {
+    session.startTransaction();
+  }
+
+  async abortTransaction(session) {
+    await session.abortTransaction();
+  }
+
+  async commitTransaction(session) {
+    await session.commitTransaction();
+  }
+
+  async startSession(collection) {
+    const mongooseModel = this.getStoreModel(collection);
+    return mongooseModel.startSession();
+  }
+
+  endSession(session) {
+    session.endSession();
+  }
+
+  async find(mongooseModel, filterArg = {}, options = {}, mongoOptions = {}) {
     const {
       [SORT_HEADER]: sort,
       [OFFSET_HEADER]: offset,
@@ -285,7 +313,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
       Object.assign(filter, this.offsetToFilter(offset));
     }
     debug('find', filter, options);
-    const query = mongooseModel.find(filter, null, { strict: false, lean: true });
+    const query = mongooseModel.find(filter, null, { strict: false, lean: true, ...mongoOptions });
     if (offset) {
       query.sort(this.offsetSort());
     }
@@ -298,7 +326,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
     return query;
   }
 
-  async aggregate(mongooseModel, pipeline = [], options = {}) {
+  async aggregate(mongooseModel, pipeline = [], options = {}, mongoOptions = {}) {
     const { [SORT_HEADER]: sort, [OFFSET_HEADER]: offset } = options;
     if (offset) {
       pipeline.splice(0, 0, { $match: this.offsetToFilter(offset) });
@@ -308,7 +336,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
       pipeline.push({ $sort: this.sortFromHeader(sort) });
     }
     debug('aggregate', pipeline, options);
-    return mongooseModel.aggregate(pipeline);
+    return mongooseModel.aggregate(pipeline, mongoOptions);
   }
 
   sortFromHeader(sortHeader = '') {

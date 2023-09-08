@@ -80,6 +80,55 @@ describe('Mongo Model', function () {
     }
   });
 
+  it('should rollback transactions', async function () {
+    try {
+      const session = await storeAdapter.startSession('Person');
+      storeAdapter.startTransaction(session);
+      const opts = { headers: { mongoSession: session } };
+      const ids = await Person.merge(people, opts);
+      const merged = await Person.find({ id: { $in: ids } }, opts);
+      expect(merged.length).equals(2);
+      await storeAdapter.abortTransaction(session);
+      const empty = await Person.find({ id: { $in: ids } }, opts);
+      expect(empty).eql([]);
+      storeAdapter.endSession(session);
+    } catch (e) {
+      expect(e.message).to.eql(null);
+    }
+  });
+
+  it('should commit transactions', async function () {
+    try {
+      const session = await storeAdapter.startSession('Person');
+      storeAdapter.startTransaction(session);
+      const opts = { headers: { mongoSession: session } };
+      const ids = await Person.merge(people, opts);
+      const merged = await Person.find({ id: { $in: ids } }, opts);
+      expect(merged.length).equals(2);
+      await new Promise((resolve, reject) => {
+        let ready = false;
+        Person.find({ id: { $in: ids } })
+          .then(empty1 => {
+            try {
+              ready = true;
+              expect(empty1.length).equals(2);
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          });
+        storeAdapter.commitTransaction(session)
+          .then(() => {
+            expect(ready).to.be.false;
+          })
+          .catch(reject);
+      })
+      storeAdapter.endSession(session);
+    } catch (e) {
+      expect(e.message).to.eql(null);
+    }
+  });
+
   it('should update with arrayFilters', async function () {
     try {
       const id = 'arrayFilters';
