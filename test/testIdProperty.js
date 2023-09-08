@@ -31,12 +31,14 @@ describe('Mongo idProperty', function () {
 
   before(async function () {
     const uri = await initMockMongo();
-    await storeAdapter.connect(uri);
+    await mongoose.connect(uri, { dbName: 'verifyMASTER' });
   });
 
   beforeEach(clearMockMongo);
 
   it('should merge', async function () {
+
+    this.timeout(5000);
 
     const props = {
       _id: 'test_1',

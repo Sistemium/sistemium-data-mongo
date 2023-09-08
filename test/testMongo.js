@@ -37,7 +37,7 @@ describe('Mongo Model', function () {
 
   before(async function () {
     const uri = await initMockMongo();
-    await storeAdapter.connect(uri);
+    await mongoose.connect(uri, { dbName: 'verifyMASTER' });
   });
 
   beforeEach(clearMockMongo);
