@@ -14,10 +14,10 @@
   "license": "ISC",
   "dependencies": {
     "lodash": "^4.17.21",
-    "mongoose": "^6.9.1",
+    "mongoose": "^6.11.6",
     "sistemium-data": "^1.10.2",
     "sistemium-debug": "^1.0.3",
-    "sistemium-mongo": "^1.15.7",
+    "sistemium-mongo": "^1.15.8",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

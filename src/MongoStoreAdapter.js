@@ -19,6 +19,7 @@ export const mongoose = defaultMongoose;
 export const ARRAY_FILTERS_OPTION = 'arrayFilters';
 export const ARRAY_PUSH_OPTION = 'arrayPush';
 export const MONGO_SESSION_OPTION = 'mongoSession';
+export const MONGO_INCREMENT_OPTION = 'increment'
 
 const { debug, error } = log('MongoAdapter');
 const INTERNAL_FIELDS_RE = /^_/;
@@ -134,6 +135,9 @@ export default class MongoStoreAdapter extends StoreAdapter {
             Object.assign(updateFilter, requestData);
           } else {
             updateOperators.$set = requestData;
+          }
+          if(headers[MONGO_INCREMENT_OPTION]) {
+            updateOperators.$inc = headers[MONGO_INCREMENT_OPTION];
           }
           data = await model.findOneAndUpdate(
             updateFilter,

@@ -1,7 +1,7 @@
 import { assert, expect } from 'sistemium-data/test/chai';
 import { mongoose } from 'sistemium-mongo/lib/mongoose';
 import Model, { OFFSET_HEADER, SORT_HEADER, FULL_RESPONSE_OPTION } from 'sistemium-data/src/Model';
-import MongoStoreAdapter from '../src/MongoStoreAdapter';
+import MongoStoreAdapter, { MONGO_INCREMENT_OPTION } from '../src/MongoStoreAdapter';
 import personData from 'sistemium-data/test/personData';
 import CommonFieldsPlugin from 'sistemium-data/src/plugins/CommonFieldsPlugin';
 import lo from 'lodash';
@@ -27,6 +27,7 @@ const Person = new MongoModel({
   schema: {
     id: String,
     name: String,
+    age: Number,
     fatherId: String,
     children: [],
   },
@@ -141,6 +142,21 @@ describe('Mongo Model', function () {
       const props = { id, 'children.$[element].age': 13 };
       const person = await Person.updateOne(props, { headers: { arrayFilters } });
       expect(person.children[1].age).equals(13);
+    } catch (e) {
+      expect(e.message).to.eql(null);
+    }
+  });
+
+  it('should increment', async function () {
+    try {
+      const children = [
+        { id: 'child1', age: 10 },
+        { id: 'child2', age: 12 },
+      ];
+      await Person.merge(children);
+      const headers = { [MONGO_INCREMENT_OPTION]: { age: -3 } };
+      const person = await Person.updateOne({ id: 'child2' }, { headers });
+      expect(person.age).equals(9);
     } catch (e) {
       expect(e.message).to.eql(null);
     }

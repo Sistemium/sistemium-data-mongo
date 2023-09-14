@@ -2,6 +2,7 @@ export const mongoose: any;
 export const ARRAY_FILTERS_OPTION: "arrayFilters";
 export const ARRAY_PUSH_OPTION: "arrayPush";
 export const MONGO_SESSION_OPTION: "mongoSession";
+export const MONGO_INCREMENT_OPTION: "increment";
 export default class MongoStoreAdapter {
     constructor(options?: {});
     mongoose: any;
