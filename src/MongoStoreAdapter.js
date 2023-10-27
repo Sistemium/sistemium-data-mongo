@@ -28,6 +28,12 @@ const PAGE_SIZE_HEADER = 'x-page-size';
 
 export default class MongoStoreAdapter extends StoreAdapter {
 
+  /**
+   * Setup
+   * @param {Object} options
+   * @param {import('mongoose')} [options.mongoose]
+   */
+
   constructor(options = {}) {
     super(options);
     this.mongoose = options.mongoose;

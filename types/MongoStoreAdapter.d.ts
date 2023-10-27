@@ -4,11 +4,21 @@ export const ARRAY_PUSH_OPTION: "arrayPush";
 export const MONGO_SESSION_OPTION: "mongoSession";
 export const MONGO_INCREMENT_OPTION: "increment";
 export default class MongoStoreAdapter extends StoreAdapter {
-    mongoose: any;
+    /**
+     * Setup
+     * @param {Object} options
+     * @param {import('mongoose')} [options.mongoose]
+     */
+    constructor(options?: {
+        mongoose?: typeof defaultMongoose;
+    });
+    mongoose: typeof defaultMongoose;
     omitInternal(obj: any): any;
-    connect(url?: string): any;
-    disconnect(): any;
-    mongooseModel(name: any, schema: any, options?: {}): any;
+    connect(url?: string): Promise<typeof defaultMongoose>;
+    disconnect(): Promise<void>;
+    mongooseModel(name: any, schema: any, options?: {}): defaultMongoose.Model<any, {}, {}, {}, defaultMongoose.Schema<any, defaultMongoose.Model<any, any, any, any, any, any>, {}, {}, {}, {}, defaultMongoose.DefaultSchemaOptions, any, defaultMongoose.Document<unknown, {}, defaultMongoose.FlatRecord<any>> & defaultMongoose.FlatRecord<any> & Required<{
+        _id: unknown;
+    }>>, any>;
     transformRequest(data: any): any;
     transformResponse(data: any): any;
     mergeFn(mongooseModel: any, data: any, mergeBy?: any[], mongoOptions?: {}): Promise<any[]>;
