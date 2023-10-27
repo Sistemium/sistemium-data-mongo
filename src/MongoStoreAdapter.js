@@ -2,7 +2,7 @@ import { settle } from 'sistemium-data/src/util/axios';
 import isObject from 'lodash/isObject';
 import assert from 'assert';
 import log from 'sistemium-debug';
-import StoreAdapter from 'sistemium-data/src/StoreAdapter';
+import { StoreAdapter } from 'sistemium-data';
 import { mongoose as defaultMongoose, Schema, model as mongooseModel } from 'sistemium-mongo/lib/mongoose';
 import * as m from 'sistemium-data/src/Model';
 import omit from 'lodash/omit';
@@ -184,7 +184,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
 
     } catch (e) {
       status = 503;
-      console.error(e)
+      // console.error(e)
       statusText = e.message;
       error(e);
     }

@@ -1,20 +1,14 @@
-export const mongoose: any;
+export const mongoose: typeof defaultMongoose;
 export const ARRAY_FILTERS_OPTION: "arrayFilters";
 export const ARRAY_PUSH_OPTION: "arrayPush";
 export const MONGO_SESSION_OPTION: "mongoSession";
 export const MONGO_INCREMENT_OPTION: "increment";
-export default class MongoStoreAdapter {
-    constructor(options?: {});
+export default class MongoStoreAdapter extends StoreAdapter {
     mongoose: any;
     omitInternal(obj: any): any;
     connect(url?: string): any;
     disconnect(): any;
     mongooseModel(name: any, schema: any, options?: {}): any;
-    setupModel(name: any, { schema, indexes }: {
-        schema: any;
-        indexes?: any[];
-    }): void;
-    requestAdapter(config: any): Promise<any>;
     transformRequest(data: any): any;
     transformResponse(data: any): any;
     mergeFn(mongooseModel: any, data: any, mergeBy?: any[], mongoOptions?: {}): Promise<any[]>;
@@ -41,11 +35,11 @@ export default class MongoStoreAdapter {
     find(mongooseModel: any, filterArg?: {}, options?: {}, mongoOptions?: {}): Promise<any>;
     aggregate(mongooseModel: any, pipeline?: any[], options?: {}, mongoOptions?: {}): Promise<any>;
     sortFromHeader(sortHeader?: string): {};
-    offsetFromArray(data: any): any;
-    offsetFromRecord(obj: any): any;
+    offsetFromArray(data: any): string;
+    offsetFromRecord(obj: any): string;
     offsetToFilter(offset: any): {
         ts: {
-            $gt: any;
+            $gt: import("sistemium-mongo/node_modules/bson").Timestamp;
         };
     };
     offsetSort(): {
@@ -58,3 +52,5 @@ export default class MongoStoreAdapter {
     };
     toObject(record: any): any;
 }
+import { mongoose as defaultMongoose } from "sistemium-mongo/lib/mongoose";
+import { StoreAdapter } from "sistemium-data";
