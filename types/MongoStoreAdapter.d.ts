@@ -16,9 +16,14 @@ export default class MongoStoreAdapter extends StoreAdapter {
     omitInternal(obj: any): any;
     connect(url?: string): Promise<typeof defaultMongoose>;
     disconnect(): Promise<void>;
-    mongooseModel(name: any, schema: any, options?: {}): defaultMongoose.Model<any, {}, {}, {}, defaultMongoose.Schema<any, defaultMongoose.Model<any, any, any, any, any, any>, {}, {}, {}, {}, defaultMongoose.DefaultSchemaOptions, any, defaultMongoose.Document<unknown, {}, defaultMongoose.FlatRecord<any>> & defaultMongoose.FlatRecord<any> & Required<{
-        _id: unknown;
-    }>>, any>;
+    /**
+     *
+     * @param {string} name
+     * @param {object} schema
+     * @param {object} [options]
+     * @returns {mongoose}
+     */
+    mongooseModel(name: string, schema: object, options?: object): typeof defaultMongoose;
     transformRequest(data: any): any;
     transformResponse(data: any): any;
     mergeFn(mongooseModel: any, data: any, mergeBy?: any[], mongoOptions?: {}): Promise<any[]>;
@@ -49,7 +54,7 @@ export default class MongoStoreAdapter extends StoreAdapter {
     offsetFromRecord(obj: any): string;
     offsetToFilter(offset: any): {
         ts: {
-            $gt: import("sistemium-mongo/node_modules/bson").Timestamp;
+            $gt: defaultMongoose.mongo.BSON.Timestamp;
         };
     };
     offsetSort(): {

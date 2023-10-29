@@ -53,6 +53,14 @@ export default class MongoStoreAdapter extends StoreAdapter {
     return (this.mongoose || defaultMongoose).disconnect();
   }
 
+  /**
+   *
+   * @param {string} name
+   * @param {object} schema
+   * @param {object} [options]
+   * @returns {mongoose}
+   */
+
   mongooseModel(name, schema, options = {}) {
     const mongoSchema = new Schema(schema);
     mongoSchema.index(this.idProperty, { unique: true });
