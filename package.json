@@ -14,10 +14,10 @@
   "license": "ISC",
   "dependencies": {
     "lodash": "^4.17.21",
-    "mongoose": "^7.6.3",
-    "sistemium-data": "^1.10.3",
+    "mongoose": "7.6.1",
+    "sistemium-data": "^1.10.5",
     "sistemium-debug": "^1.0.3",
-    "sistemium-mongo": "^1.18.2",
+    "sistemium-mongo": "^1.18.4",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
@@ -28,6 +28,7 @@
     "mongodb-memory-server": "^8.15.1",
     "nodemon": "^2.0.7",
     "nyc": "^15.1.0",
+    "prettier": "^3.0.3",
     "typescript": "^4.2.4"
   }
 }
