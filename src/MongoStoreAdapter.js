@@ -4,7 +4,7 @@ import assert from 'assert';
 import log from 'sistemium-debug';
 import { StoreAdapter } from 'sistemium-data';
 import { mongoose as defaultMongoose, Schema, model as mongooseModel } from 'sistemium-mongo/lib/mongoose';
-import * as m from 'sistemium-data/src/Model';
+import * as m from 'sistemium-data';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import omitBy from 'lodash/omitBy';
@@ -12,8 +12,9 @@ import mapValues from 'lodash/mapValues';
 import pickBy from 'lodash/pickBy';
 import isString from 'lodash/isString';
 import { timestampToOffset, offsetToTimestamp } from 'sistemium-mongo/lib/util';
-import { OFFSET_HEADER, SORT_HEADER } from 'sistemium-data/src/Model';
+import { OFFSET_HEADER, SORT_HEADER } from 'sistemium-data';
 import each from 'lodash/each';
+import toNumber from 'lodash/toNumber';
 
 export const mongoose = defaultMongoose;
 export const ARRAY_FILTERS_OPTION = 'arrayFilters';
@@ -345,13 +346,19 @@ export default class MongoStoreAdapter extends StoreAdapter {
   }
 
   async aggregate(mongooseModel, pipeline = [], options = {}, mongoOptions = {}) {
-    const { [SORT_HEADER]: sort, [OFFSET_HEADER]: offset } = options;
+    const { [SORT_HEADER]: sort, [OFFSET_HEADER]: offset, [PAGE_SIZE_HEADER]: pageSize } = options;
     if (offset) {
-      pipeline.splice(0, 0, { $match: this.offsetToFilter(offset) });
+      const tsMatch = { $match: this.offsetToFilter(offset) };
+      if (offset !== '*') {
+        pipeline.splice(0, 0, tsMatch);
+      }
       pipeline.push({ $sort: this.offsetSort() });
     }
     if (sort) {
       pipeline.push({ $sort: this.sortFromHeader(sort) });
+    }
+    if (pageSize) {
+      pipeline.push({ $limit: toNumber(pageSize) });
     }
     debug('aggregate', pipeline, options);
     return mongooseModel.aggregate(pipeline, mongoOptions);
