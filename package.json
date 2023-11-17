@@ -2,12 +2,15 @@
   "name": "sistemium-data-mongo",
   "version": "1.4.4",
   "description": "",
+  "files": [
+    "lib"
+  ],
   "main": "src/MongoStoreAdapter",
   "typings": "./types/MongoStoreAdapter.d.ts",
   "scripts": {
     "coverage": "nyc npm run test",
     "test": "mocha -r esm --exit",
-    "build": "rm -rf types; tsc"
+    "watch": "npx tsc-watch"
   },
   "keywords": [],
   "author": "Sistemium UAB",
@@ -21,6 +24,8 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.200",
+    "@types/node": "^20.9.0",
     "chai": "^4.3.0",
     "chai-as-promised": "^7.1.1",
     "esm": "^3.2.25",
@@ -29,6 +34,7 @@
     "nodemon": "^2.0.7",
     "nyc": "^15.1.0",
     "prettier": "^3.0.3",
+    "tsc-watch": "^6.0.4",
     "typescript": "^4.2.4"
   }
 }
