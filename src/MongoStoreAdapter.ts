@@ -290,10 +290,10 @@ export default class MongoStoreAdapter extends StoreAdapter {
       }
 
       statusText = ''
-    } catch (e) {
+    } catch (e: any) {
       status = 503
       // console.error(e)
-      statusText = e.message
+      statusText = (e as Error).message
       error(e)
     }
 
