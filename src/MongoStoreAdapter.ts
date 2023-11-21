@@ -1,9 +1,15 @@
-// @ts-ignore
-import { settle } from 'sistemium-data/src/util/axios'
+import { settle } from 'sistemium-data/lib/util/axios'
 import isObject from 'lodash/isObject'
 import assert from 'assert'
 import log from 'sistemium-debug'
-import { StoreAdapter, Model } from 'sistemium-data'
+import {
+  StoreAdapter,
+  Model,
+  ModelConfig,
+  ModelRequestConfig,
+  IStoreAdapter,
+  AxiosResponse
+} from 'sistemium-data'
 import {
   mongoose as defaultMongoose,
   Schema,
@@ -35,7 +41,7 @@ export const ARRAY_PUSH_OPTION = 'arrayPush'
 export const MONGO_SESSION_OPTION = 'mongoSession'
 export const MONGO_INCREMENT_OPTION = 'increment'
 
-type BaseItem = Record<string, any>
+export type BaseItem = Record<string, any>
 
 const { debug, error } = log('MongoAdapter')
 const INTERNAL_FIELDS_RE = /^_/
@@ -51,20 +57,14 @@ export const PAGE_SIZE_HEADER = 'x-page-size'
 
 export interface MongoStoreOptions {
   mongoose: Mongoose
+  idProperty?: string
 }
 
-export interface ModelOptions {
-  schema: BaseItem
-  indexes: BaseItem[]
+export interface ModelOptions extends ModelConfig {
+  indexes?: BaseItem[]
 }
 
-export interface RequestConfig {
-  method: string
-  op: string
-  collection: string
-  data: BaseItem | BaseItem[] | undefined
-  resourceId?: string
-  params?: BaseItem
+export type RequestConfig = ModelRequestConfig & {
   headers: BaseItem
 }
 
@@ -92,14 +92,12 @@ type StoreModel = MongooseModel<any> &
 
 const { MONGO_URL } = process.env
 
-export default class MongoStoreAdapter extends StoreAdapter {
+export default class MongoStoreAdapter extends StoreAdapter implements IStoreAdapter {
   /**
    * Setup
    */
 
   mongoose: Mongoose
-  // @ts-ignore
-  idProperty: string
 
   constructor(options: MongoStoreOptions) {
     super(options)
@@ -151,12 +149,13 @@ export default class MongoStoreAdapter extends StoreAdapter {
     )
   }
 
-  setupModel(name: string, { schema, indexes }: ModelOptions) {
+  setupModel(name: string, config: ModelOptions) {
+    const { schema, indexes = [] } = config
     const model = this.mongooseModel(name, schema, { indexes })
-    super.setupModel(name, model)
+    super.setupModel(name, config, model)
   }
 
-  async requestAdapter(config: RequestConfig) {
+  async requestAdapter(config: RequestConfig): Promise<AxiosResponse> {
     const { method } = config
     const { op, collection, data: requestData } = config
     const model = this.getStoreModel(collection)
@@ -167,8 +166,8 @@ export default class MongoStoreAdapter extends StoreAdapter {
     let statusText = 'Not implemented yet'
     let data: BaseItem | BaseItem[] | undefined | null = null
     const responseHeaders: ResponseHeaders = {}
-    const offsetRequested = headers[OFFSET_HEADER]
-    const mongoOptions = { lean: true, session: undefined }
+    const offsetRequested = headers[OFFSET_HEADER] as string | undefined
+    const mongoOptions: BaseItem = { lean: true }
 
     if (headers[MONGO_SESSION_OPTION]) {
       mongoOptions.session = headers[MONGO_SESSION_OPTION]
