@@ -130,7 +130,9 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
     } = {},
   ): MongooseModel<any> {
     const mongoSchema = new Schema(schema)
-    mongoSchema.index({ [this.idProperty]: 1 }, { unique: true })
+    if (this.idProperty !== '_id') {
+      mongoSchema.index({ [this.idProperty]: 1 }, { unique: true })
+    }
     mongoSchema.index({ ts: -1 })
     each(schema || {}, (type, key) => {
       if (key.match(/.+Id$/)) {
@@ -494,10 +496,9 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
     sortHeader.split(',').forEach(item => {
       debug('sortFromHeader', res, item)
       const [, minus, name] = item.match(/([+-]?)([^+-]+$)/) || []
-      if (!name) {
-        return
+      if (name) {
+        res[name] = minus === '-' ? -1 : 1
       }
-      res[name] = minus === '-' ? -1 : 1
     })
     return res
   }
