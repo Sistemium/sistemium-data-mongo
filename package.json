@@ -6,7 +6,6 @@
     "lib"
   ],
   "main": "lib/MongoStoreAdapter",
-  "typings": "./types/MongoStoreAdapter.d.ts",
   "scripts": {
     "coverage": "nyc npm run test",
     "test": "ts-mocha test/test*.ts --exit",
