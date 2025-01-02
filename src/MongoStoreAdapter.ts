@@ -55,13 +55,23 @@ function pickUndefined(obj: BaseItem): Record<string, 1> {
 
 export const PAGE_SIZE_HEADER = 'x-page-size'
 
+export interface MongoIndexOption {
+  name?: string
+  unique?: boolean
+  sparse?: boolean
+  expireAfterSeconds?: Number
+  expires?: string
+}
+
 export interface MongoStoreOptions {
   mongoose: Mongoose
   idProperty?: string
 }
 
+type IndexDefinition = BaseItem | [BaseItem, MongoIndexOption]
+
 export interface ModelOptions extends ModelConfig {
-  indexes?: BaseItem[]
+  indexes?: IndexDefinition[]
 }
 
 export type RequestConfig = ModelRequestConfig & {
@@ -126,7 +136,7 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
     name: string,
     schema: BaseItem,
     options: {
-      indexes?: BaseItem[]
+      indexes?: IndexDefinition[]
     } = {},
   ): MongooseModel<any> {
     const mongoSchema = new Schema(schema)
@@ -143,7 +153,13 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
         mongoSchema.index({ [key]: 1 }, { unique: true })
       }
     })
-    each(options.indexes || [], idx => mongoSchema.index(idx))
+    each(options.indexes, idx => {
+      if (Array.isArray(idx)) {
+        mongoSchema.index(idx[0], idx[1])
+        return
+      }
+      mongoSchema.index(idx)
+    })
     return (this.mongoose ? this.mongoose.model : mongooseModel)(
       name,
       mongoSchema,
@@ -476,10 +492,10 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
     } = options
     if (offset) {
       const tsMatch = { $match: this.offsetToFilter(offset) }
+      pipeline.splice(0, 0, { $sort: this.offsetSort() })
       if (offset !== '*') {
         pipeline.splice(0, 0, tsMatch)
       }
-      pipeline.push({ $sort: this.offsetSort() })
     }
     if (sort) {
       pipeline.push({ $sort: this.sortFromHeader(sort) })

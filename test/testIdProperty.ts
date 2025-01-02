@@ -1,4 +1,4 @@
-import { expect } from 'chai'
+import { expect } from './chai'
 import { Context } from 'mocha'
 import { mongoose } from 'sistemium-mongo/lib/mongoose'
 import { Model, OFFSET_HEADER } from 'sistemium-data'
@@ -8,8 +8,7 @@ import { BaseItem } from '../src/MongoStoreAdapter'
 
 const storeAdapter = new DateOffsetAdapter({ mongoose, idProperty: '_id' })
 
-class MongoModelId extends Model {
-}
+class MongoModelId extends Model {}
 
 MongoModelId.useStoreAdapter(storeAdapter)
 
@@ -21,6 +20,7 @@ const Person = new MongoModelId({
     fatherId: String,
     children: [],
   },
+  indexes: [[{ name: 1, fatherId: 1 }, { unique: true }]],
 })
 
 describe('Mongo idProperty', function () {
@@ -55,11 +55,28 @@ describe('Mongo idProperty', function () {
       name: 'Test',
     }
 
-    const created: BaseItem = await Person.createOne(props);
-    expect(created.ts as string).to.be.not.null;
+    const created: BaseItem = await Person.createOne(props)
+    expect(created.ts as string).to.be.not.null
 
-    const data = await Person.fetchAll({});
+    const data = await Person.fetchAll({})
 
     expect(data[OFFSET_HEADER]).to.be.not.empty
+  })
+
+  it('should create unique indices', async function () {
+    const props = {
+      _id: 'test_1',
+      name: 'Test',
+      fatherId: 'testFather',
+    }
+
+    const err = [
+      'E11000 duplicate key error collection',
+      'verifyMASTER.PersonId index: name_1_fatherId_1 dup key',
+      '{ name: "Test", fatherId: "testFather" }',
+    ].join(': ')
+
+    expect(Person.merge([props, { ...props, _id: 'test_2' }]))
+      .to.be.rejectedWith(err)
   })
 })
