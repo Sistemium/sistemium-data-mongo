@@ -36,6 +36,7 @@ import type {
 import * as process from 'process'
 
 export const mongoose = defaultMongoose
+export const ARRAY_PULL_OPTION = 'arrayPull'
 export const ARRAY_FILTERS_OPTION = 'arrayFilters'
 export const ARRAY_PUSH_OPTION = 'arrayPush'
 export const MONGO_SESSION_OPTION = 'mongoSession'
@@ -248,6 +249,9 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
           }
           if (headers[ARRAY_PUSH_OPTION]) {
             updateOperators.$push = headers[ARRAY_PUSH_OPTION]
+            Object.assign(updateFilter, requestData)
+          } else if(headers[ARRAY_PULL_OPTION]) {
+            updateOperators.$pull = headers[ARRAY_PULL_OPTION]
             Object.assign(updateFilter, requestData)
           } else {
             updateOperators.$set = requestData
@@ -534,6 +538,7 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
     }
   }) {
     const { ts } = obj
+    // @ts-ignore
     return ts && ts.high ? timestampToOffset(ts) : undefined
   }
 

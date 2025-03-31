@@ -186,6 +186,23 @@ describe('Mongo Model', function () {
     }
   })
 
+  it('should pull from arrays', async function () {
+    try {
+      const id = 'arrayPull'
+      const children = [
+        { name: 'child1', age: 10 },
+        { name: 'child2', age: 12 },
+      ]
+      await Person.create({ id, children })
+      const arrayPull = { children: { name: 'child2' } }
+      const filter = { id }
+      const person = await Person.updateOne(filter, { headers: { arrayPull } })
+      expect(person.children.length).equal(1)
+    } catch (e: any) {
+      expect(e.message).to.eql(null)
+    }
+  })
+
   it('should merge and delete data', async function () {
     const ids = await Person.merge(people)
     // console.log('ids', ids);
