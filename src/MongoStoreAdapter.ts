@@ -41,6 +41,7 @@ export const ARRAY_FILTERS_OPTION = 'arrayFilters'
 export const ARRAY_PUSH_OPTION = 'arrayPush'
 export const MONGO_SESSION_OPTION = 'mongoSession'
 export const MONGO_INCREMENT_OPTION = 'increment'
+export const PRE_PIPE_OPTION = 'prePipe'
 
 export type BaseItem = Record<string, any>
 
@@ -87,6 +88,7 @@ export interface FindOptions {
   [SORT_HEADER]?: string
   [OFFSET_HEADER]?: string
   [PAGE_SIZE_HEADER]?: string
+  [PRE_PIPE_OPTION]?: PipelineStage[]
 }
 
 export type AggregateOptions = FindOptions
@@ -493,6 +495,7 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
       [SORT_HEADER]: sort,
       [OFFSET_HEADER]: offset,
       [PAGE_SIZE_HEADER]: pageSize,
+      [PRE_PIPE_OPTION]: prePipe,
     } = options
     if (offset) {
       const tsMatch = { $match: this.offsetToFilter(offset) }
@@ -500,6 +503,9 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
       if (offset !== '*') {
         pipeline.splice(0, 0, tsMatch)
       }
+    }
+    if (prePipe) {
+      pipeline.splice(0, 0, ...prePipe)
     }
     if (sort) {
       pipeline.push({ $sort: this.sortFromHeader(sort) })

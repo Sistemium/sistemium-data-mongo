@@ -11,6 +11,7 @@ import { assert, expect } from 'chai'
 import MongoStoreAdapter, {
   MONGO_INCREMENT_OPTION,
   PAGE_SIZE_HEADER,
+  PRE_PIPE_OPTION,
 } from '../src/MongoStoreAdapter'
 import personData from './personData'
 import { clearMockMongo, initMockMongo } from './mockMongo'
@@ -261,6 +262,21 @@ describe('Mongo Model', function () {
       headers: { [OFFSET_HEADER]: offset },
     })
     expect(next.length).equals(1)
+  })
+
+  it('should aggregate using pre-pipe', async function () {
+    await Person.merge(people)
+    const pipeline = [{ $sort: { id: 1 } }, { $match: { pre: 1 } }]
+    const { data } = await Person.aggregate(pipeline, {
+      headers: {
+        [OFFSET_HEADER]: '*',
+        [PAGE_SIZE_HEADER]: 1,
+        [SORT_HEADER]: 'id',
+        [PRE_PIPE_OPTION]: [{ $set: { pre: 1 } }],
+      },
+      [FULL_RESPONSE_OPTION]: true,
+    })
+    expect(data.length).equals(1)
   })
 
   it('should limit find data', async function () {
