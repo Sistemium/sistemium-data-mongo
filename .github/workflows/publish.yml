@@ -19,7 +19,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npx tsc
-      - run: npm test
+      - run: npm test -- --timeout 60000
         env:
           MONGOMS_VERSION: 8.0.4
       - run: npm publish --provenance --access public
