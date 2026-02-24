@@ -128,7 +128,9 @@ export default class MongoStoreAdapter extends StoreAdapter implements IStoreAda
   }
 
   async connect(url = MONGO_URL) {
-    return (this.mongoose || defaultMongoose).connect(`mongodb://${url}`)
+    const hasScheme = url && /^mongodb(\+srv)?:\/\//.test(url)
+    const connectionString = hasScheme ? url : `mongodb://${url}`
+    return (this.mongoose || defaultMongoose).connect(connectionString)
   }
 
   async disconnect() {
