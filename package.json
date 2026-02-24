@@ -1,6 +1,6 @@
 {
   "name": "sistemium-data-mongo",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "",
   "files": [
     "lib"
